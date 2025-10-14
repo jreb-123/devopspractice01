@@ -12,8 +12,6 @@ variables:
   chartPath: 'app'
   releaseName: 'practice01'
   namespace: 'dev'
-  ACR_DOCKER_CONFIG_JSON: ''
-
 
 steps:
 # 1️⃣ Checkout del código
@@ -33,7 +31,7 @@ steps:
   displayName: 'Login to ACR'
   inputs:
     command: login
-    containerRegistry: 'jrebpracticeacr'
+    containerRegistry: 'jrebpracticeacr'   # nombre exacto del servicio ACR en DevOps
 
 # 4️⃣ Push al ACR
 - task: Docker@2
@@ -43,23 +41,30 @@ steps:
     tags: |
       $(imageName)
 
-# 5️⃣ Crear secret para ACR
-# 5️⃣ Crear secret para ACR
-- script: |
-    echo "Creando secreto de ACR..."
-    kubectl delete secret acr-secret -n $(namespace) --ignore-not-found
-    kubectl create secret docker-registry acr-secret \
-      --docker-server=jrebpracticeacr.azurecr.io \
-      --docker-username=$(ACR_USERNAME) \
-      --docker-password=$(ACR_PASSWORD) \
-      --namespace $(namespace)
+# 5️⃣ Crear secreto para ACR en el clúster
+- task: Kubernetes@1
   displayName: 'Create ACR secret'
-  env:
-    ACR_USERNAME: $(ACR_USERNAME)
-    ACR_PASSWORD: $(ACR_PASSWORD)
+  inputs:
+    connectionType: 'Kubernetes Service Connection'
+    kubernetesServiceEndpoint: 'aks-kubeconfig-connection'
+    command: 'login'
+    useConfigurationFile: false
 
+# 6️⃣ Crear el secret real (aquí usamos Bash, con conexión activa al clúster)
+- task: Bash@3
+  displayName: 'Create ACR secret (kubectl)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo "Creando secreto de ACR..."
+      kubectl delete secret acr-secret --namespace $(namespace) --ignore-not-found
+      kubectl create secret docker-registry acr-secret \
+        --docker-server=jrebpracticeacr.azurecr.io \
+        --docker-username=$(ACR_USERNAME) \
+        --docker-password=$(ACR_PASSWORD) \
+        --namespace $(namespace)
 
-# 6️⃣ Deploy automático con Helm a AKS
+# 7️⃣ Deploy con Helm
 - task: HelmDeploy@0
   displayName: 'Deploy to AKS with Helm'
   inputs:
