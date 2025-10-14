@@ -50,17 +50,14 @@ steps:
     connectionType: 'Kubernetes Service Connection'
     kubernetesServiceEndpoint: 'aks-kubeconfig-connection'
     command: 'apply'
-    useConfigurationFile: true
-    inline: |
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: acr-secret
-        namespace: $(namespace)
-      type: kubernetes.io/dockerconfigjson
-      data:
-        .dockerconfigjson: $(ACR_DOCKER_CONFIG_JSON)
-    secretType: 'dockerRegistry'
+    useConfigurationFile: false
+    arguments: >
+      create secret docker-registry acr-secret
+      --docker-server=jrebpracticeacr.azurecr.io
+      --docker-username=$(ACR_USERNAME)
+      --docker-password=$(ACR_PASSWORD)
+      --namespace $(namespace)
+      --dry-run=client -o yaml | kubectl apply -f -
 
 # 6️⃣ Deploy automático con Helm a AKS
 - task: HelmDeploy@0
