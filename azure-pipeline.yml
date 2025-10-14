@@ -53,6 +53,9 @@ steps:
 # 6️⃣ Crear el secret real (aquí usamos Bash, con conexión activa al clúster)
 - task: Bash@3
   displayName: 'Create ACR secret (kubectl)'
+  env:
+    ACR_USERNAME: $(ACR_USERNAME)
+    ACR_PASSWORD: $(ACR_PASSWORD)
   inputs:
     targetType: 'inline'
     script: |
@@ -60,9 +63,10 @@ steps:
       kubectl delete secret acr-secret --namespace $(namespace) --ignore-not-found
       kubectl create secret docker-registry acr-secret \
         --docker-server=jrebpracticeacr.azurecr.io \
-        --docker-username=$(ACR_USERNAME) \
-        --docker-password=$(ACR_PASSWORD) \
+        --docker-username=$ACR_USERNAME \
+        --docker-password=$ACR_PASSWORD \
         --namespace $(namespace)
+
 
 # 7️⃣ Deploy con Helm
 - task: HelmDeploy@0
