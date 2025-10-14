@@ -44,20 +44,20 @@ steps:
       $(imageName)
 
 # 5️⃣ Crear secret para ACR
-- task: Kubernetes@1
-  displayName: 'Create ACR secret'
-  inputs:
-    connectionType: 'Kubernetes Service Connection'
-    kubernetesServiceEndpoint: 'aks-kubeconfig-connection'
-    command: 'apply'
-    useConfigurationFile: false
-    arguments: >
-      create secret docker-registry acr-secret
-      --docker-server=jrebpracticeacr.azurecr.io
-      --docker-username=$(ACR_USERNAME)
-      --docker-password=$(ACR_PASSWORD)
+# 5️⃣ Crear secret para ACR
+- script: |
+    echo "Creando secreto de ACR..."
+    kubectl delete secret acr-secret -n $(namespace) --ignore-not-found
+    kubectl create secret docker-registry acr-secret \
+      --docker-server=jrebpracticeacr.azurecr.io \
+      --docker-username=$(ACR_USERNAME) \
+      --docker-password=$(ACR_PASSWORD) \
       --namespace $(namespace)
-      --dry-run=client -o yaml | kubectl apply -f -
+  displayName: 'Create ACR secret'
+  env:
+    ACR_USERNAME: $(ACR_USERNAME)
+    ACR_PASSWORD: $(ACR_PASSWORD)
+
 
 # 6️⃣ Deploy automático con Helm a AKS
 - task: HelmDeploy@0
